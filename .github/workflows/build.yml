@@ -48,12 +48,6 @@ jobs:
       - name: Install Guix
         run: scripts/ci-install-guix.sh
 
-      - name: Pull pinned Guix
-        run: |
-          guix pull --fallback -C channels-lock.scm
-          echo "$HOME/.config/guix/current/bin" >> "$GITHUB_PATH"
-          "$HOME/.config/guix/current/bin/guix" describe
-
       - name: Install signing key
         env:
           SIGNING_KEY_SEC: ${{ secrets.GUIX_SIGNING_KEY_SEC }}
@@ -62,6 +56,38 @@ jobs:
           sudo cp signing-key.pub /etc/guix/signing-key.pub
           sudo chmod 600 /etc/guix/signing-key.sec
           sudo chmod 644 /etc/guix/signing-key.pub
+          sudo "$(command -v guix)" archive --authorize < signing-key.pub
+
+      - name: Restore pulled Guix
+        id: guixcache
+        uses: actions/cache/restore@v4
+        with:
+          path: guix-current
+          key: guix-current-${{ hashFiles('channels-lock.scm') }}-v1
+
+      - name: Pull pinned Guix
+        run: |
+          mkdir -p "$HOME/.config/guix"
+          if [ -f guix-current/path ]; then
+            # Reuse the Guix built by an earlier run for the same lock file.
+            sudo "$(command -v guix)" archive --import < guix-current/closure.nar
+            ln -sfn "$(cat guix-current/path)" "$HOME/.config/guix/current"
+          else
+            guix pull --fallback -C channels-lock.scm
+            mkdir -p guix-current
+            p=$(readlink -f "$HOME/.config/guix/current")
+            echo "$p" > guix-current/path
+            guix archive --export -r "$p" > guix-current/closure.nar
+          fi
+          echo "$HOME/.config/guix/current/bin" >> "$GITHUB_PATH"
+          "$HOME/.config/guix/current/bin/guix" describe
+
+      - name: Save pulled Guix
+        if: steps.guixcache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: guix-current
+          key: guix-current-${{ hashFiles('channels-lock.scm') }}-v1
 
       - name: Build
         id: build

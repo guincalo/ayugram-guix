@@ -101,8 +101,10 @@
           ;; From desktop-app/patches, as applied by upstream's build.
           (patches
            (list (local-file
-                  (search-path %load-path
-                               "ayugram/packages/patches/tlottie-telegram-desktop.patch"))))))
+                  (canonicalize-path
+                   (search-path
+                    %load-path
+                    "ayugram/packages/patches/tlottie-telegram-desktop.patch")))))))
        (build-system gnu-build-system)
        (arguments
         (list
@@ -118,6 +120,10 @@
                    (("^dlmalloc = .*$") "")
                    (("^no-std = .*$") ""))
                  (delete-file "Cargo.lock")
+                 ;; __cpuid is a safe function only since Rust 1.94.
+                 (substitute* "src/renderer/cpu/simd/cpuid.rs"
+                   (("(__cpuid(_count)?\\([^)]*\\))" call)
+                    (string-append "unsafe { " call " }")))
                  (setenv "CARGO_HOME" (string-append (getcwd) "/.cargo"))))
              (replace 'build
                (lambda _
