@@ -113,7 +113,11 @@ jobs:
               *) sudo cat "$f" > "logs/$n.log" ;;
             esac
           done
-          for f in logs/*.log; do echo "=== $f"; tail -n 150 "$f"; done
+          for f in logs/*.log; do
+            echo "=== $f"
+            grep -a -n -E "error:|Error [0-9]|CMake Error" "$f" | head -150 || true
+            tail -n 60 "$f"
+          done
 
       - name: Upload failed build log
         if: failure() && steps.build.outcome == 'failure'

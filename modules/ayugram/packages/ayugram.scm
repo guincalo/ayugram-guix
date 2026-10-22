@@ -160,6 +160,8 @@ used by Telegram Desktop for stickers and emoji animations.")
     (arguments
      (list #:qtbase qtbase
            #:tests? #f
+           ;; Keep going so one CI run shows every compile error.
+           #:make-flags #~(list "-k")
            #:imported-modules
            `(,@%qt-build-system-modules
              (guix build glib-or-gtk-build-system))
@@ -194,7 +196,14 @@ used by Telegram Desktop for stickers and emoji animations.")
                      (("#include <gio/gio.h>")
                       "#include <QGuiApplication>\n#include <gio/gio.h>"))
                    (substitute* "Telegram/lib_webview/webview/webview_interface.h"
-                     (("constexpr ") ""))))
+                     (("constexpr ") ""))
+                   ;; QAccessible::Attribute::Orientation needs Qt 6.10;
+                   ;; Guix has 6.9.  Report no attributes instead.
+                   (substitute* "Telegram/lib_ui/ui/accessible/ui_accessible_widget.cpp"
+                     (("result\\.append\\(QAccessible::Attribute::Orientation\\);")
+                      "")
+                     (("key == QAccessible::Attribute::Orientation")
+                      "false"))))
                (add-after 'install 'glib-or-gtk-compile-schemas
                  (assoc-ref glib-or-gtk:%standard-phases
                             'glib-or-gtk-compile-schemas))
