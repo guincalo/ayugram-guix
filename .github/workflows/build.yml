@@ -50,9 +50,9 @@ jobs:
 
       - name: Pull pinned Guix
         run: |
-          sudo /var/guix/profiles/per-user/root/current-guix/bin/guix pull \
-            --fallback -C channels-lock.scm
-          guix describe
+          guix pull --fallback -C channels-lock.scm
+          echo "$HOME/.config/guix/current/bin" >> "$GITHUB_PATH"
+          "$HOME/.config/guix/current/bin/guix" describe
 
       - name: Install signing key
         env:

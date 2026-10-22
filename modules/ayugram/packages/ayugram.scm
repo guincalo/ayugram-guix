@@ -100,7 +100,9 @@
            (base32 "0v3vj6ifgssipcackpajy7p80mscp1c7pa86hcnphkfqaz8l3i16"))
           ;; From desktop-app/patches, as applied by upstream's build.
           (patches
-           (list (local-file "patches/tlottie-telegram-desktop.patch")))))
+           (list (local-file
+                  (search-path %load-path
+                               "ayugram/packages/patches/tlottie-telegram-desktop.patch"))))))
        (build-system gnu-build-system)
        (arguments
         (list
